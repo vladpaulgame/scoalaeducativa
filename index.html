@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <title>MateQuiz 2026</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        :root { --bg: #05050a; --accent: #e94560; --text: #fff; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); margin: 0; text-align: center; }
+        .auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .profile-nav { position: fixed; top: 15px; right: 15px; display: flex; align-items: center; gap: 10px; cursor: pointer; z-index: 1000; }
+        .profile-nav img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--accent); }
+        .logout-card { display: none; position: absolute; top: 55px; right: 0; background: #1a1a2e; padding: 10px; border-radius: 8px; border: 1px solid var(--accent); }
+        .profile-nav:hover .logout-card { display: block; }
+        .btn { padding: 15px 30px; margin: 10px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="auth-screen" class="auth-overlay">
+    <h1>MATEQUIZ 2026</h1>
+    <p>Alege cine ești pentru a continua:</p>
+    <div style="margin-bottom: 20px;">
+        <button class="btn" id="role-elev" onclick="setRole('Elev')" style="background: #2980b9;">SUNT ELEV</button>
+        <button class="btn" id="role-prof" onclick="setRole('Învățător')" style="background: #e94560;">SUNT ÎNVĂȚĂTOR</button>
+    </div>
+    <div id="g_id_onload" data-client_id="AUTOMATIC" data-callback="onGoogleLogin"></div>
+    <div class="g_id_signin" data-type="standard"></div>
+</div>
+
+<div id="user-profile" class="profile-nav hidden">
+    <span id="user-name"></span>
+    <img id="user-img" src="">
+    <div class="logout-card" onclick="logout()">Deconectare</div>
+</div>
+
+<div id="game-menu" class="hidden" style="margin-top: 100px;">
+    <h2>Ce vrei să exersezi astăzi?</h2>
+    <button class="btn" onclick="location.href='inmultire.html'">Înmulțire</button>
+    <button class="btn" onclick="location.href='calcule.html'">Împărțire</button>
+    <button class="btn" onclick="location.href='scadereadunare.html'">Adunare/Scădere</button>
+    <br>
+    <button id="admin-link" class="btn hidden" onclick="location.href='/admin_panel'" style="background: #555;">PANOU NOTE</button>
+</div>
+
+<script>
+    let selectedRole = localStorage.getItem('tmp_role');
+
+    function setRole(r) {
+        selectedRole = r;
+        localStorage.setItem('tmp_role', r);
+        document.querySelectorAll('.btn').forEach(b => b.style.border = "none");
+        event.target.style.border = "3px solid white";
+    }
+
+    function onGoogleLogin(response) {
+        if(!selectedRole) return alert("Te rugăm să alegi rolul (Elev/Învățător) mai întâi!");
+        const payload = JSON.parse(atob(response.credential.split('.')[1]));
+        const user = {
+            nume: payload.name,
+            email: payload.email,
+            foto: payload.picture,
+            rol: selectedRole
+        };
+        localStorage.setItem('mate_auth', JSON.stringify(user));
+        loadUI();
+    }
+
+    function loadUI() {
+        const user = JSON.parse(localStorage.getItem('mate_auth'));
+        if(user) {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('user-profile').classList.remove('hidden');
+            document.getElementById('game-menu').classList.remove('hidden');
+            document.getElementById('user-img').src = user.foto;
+            document.getElementById('user-name').innerText = user.nume;
+            if(user.rol === 'Învățător') document.getElementById('admin-link').classList.remove('hidden');
+        }
+    }
+
+    function logout() {
+        localStorage.clear();
+        location.reload();
+    }
+
+    window.onload = loadUI;
+</script>
+</body>
+</html>

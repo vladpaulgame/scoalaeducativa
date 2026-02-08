@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <title>Adunare/Scădere - 2026</title>
+    <style>
+        :root { --bg: #05050a; --accent: #27ae60; --text: #fff; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: rgba(255,255,255,0.05); padding: 30px; border-radius: 20px; text-align: center; border: 1px solid var(--accent); }
+        .hidden { display: none; }
+        input { padding: 15px; font-size: 1.5rem; width: 100px; text-align: center; }
+        button { background: var(--accent); padding: 10px 20px; border: none; color: white; cursor: pointer; border-radius: 10px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="screen-game">
+    <select id="select-type" onchange="genereaza()" style="padding:5px; margin-bottom:20px;">
+        <option value="adunare">Adunare (+)</option>
+        <option value="scadere">Scădere (-)</option>
+    </select>
+    <div id="question" style="font-size: 2.5rem; margin: 20px;">0 + 0 = ?</div>
+    <input type="number" id="input-ans">
+    <br>
+    <button onclick="verifica()">VERIFICĂ RĂSPUNSUL</button>
+</div>
+
+<div class="container hidden" id="screen-final">
+    <h1>Rezultat Salvat!</h1>
+    <div id="result-text"></div>
+    <button onclick="location.href='/'">ÎNAPOI</button>
+</div>
+
+<script>
+    let corecte = 0, total = 10, index = 1, rezultatCorect;
+    const user = JSON.parse(localStorage.getItem('mate_auth'));
+
+    function genereaza() {
+        let tip = document.getElementById('select-type').value;
+        let a = Math.floor(Math.random() * 50) + 1;
+        let b = Math.floor(Math.random() * 50) + 1;
+
+        if(tip === 'adunare') {
+            rezultatCorect = a + b;
+            document.getElementById('question').innerText = `${a} + ${b} = ?`;
+        } else {
+            if(a < b) [a, b] = [b, a]; // Evitam rezultate negative
+            rezultatCorect = a - b;
+            document.getElementById('question').innerText = `${a} - ${b} = ?`;
+        }
+        document.getElementById('input-ans').value = "";
+    }
+
+    function verifica() {
+        let ans = parseInt(document.getElementById('input-ans').value);
+        if(ans === rezultatCorect) corecte++;
+
+        if(index < total) {
+            index++;
+            genereaza();
+        } else {
+            finaliza();
+        }
+    }
+
+    function finaliza() {
+        let nota = ((corecte / total) * 10).toFixed(2);
+        let tipTxt = document.getElementById('select-type').options[document.getElementById('select-type').selectedIndex].text;
+
+        fetch('/save_score', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                nume: user.nume, email: user.email, foto: user.foto,
+                rol: user.rol, nota: nota, materie: tipTxt
+            })
+        }).then(() => {
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-final').classList.remove('hidden');
+            document.getElementById('result-text').innerHTML = `
+                <img src="${user.foto}" style="width:60px; border-radius:50%;"><br>
+                ${user.nume}, ai obținut nota: <b>${nota}</b>
+            `;
+        });
+    }
+
+    window.onload = genereaza;
+</script>
+</body>
+</html>

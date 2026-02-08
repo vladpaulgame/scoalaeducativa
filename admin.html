@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <title>Note MateQuiz</title>
+    <style>
+        body { background: #05050a; color: white; font-family: sans-serif; padding: 30px; }
+        .row { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; border-left: 5px solid #e94560; }
+        .info { display: flex; align-items: center; gap: 15px; }
+        img { width: 40px; height: 40px; border-radius: 50%; }
+        .score { font-size: 1.5rem; font-weight: bold; color: #00ff88; }
+    </style>
+</head>
+<body>
+    <h1>📋 Catalog Note - 2026</h1>
+    <div id="data-container">Se încarcă notele...</div>
+
+    <script>
+        fetch('/get_all_data')
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('data-container');
+            container.innerHTML = data.length ? '' : 'Nu există note încă.';
+            data.forEach(item => {
+                container.innerHTML += `
+                    <div class="row">
+                        <div class="info">
+                            <img src="${item.foto}">
+                            <div>
+                                <strong>${item.nume}</strong><br>
+                                <small>${item.materie} • ${item.data}</small>
+                            </div>
+                        </div>
+                        <div class="score">${item.nota}</div>
+                    </div>
+                `;
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Împărțire - MateQuiz 2026</title>
+    <style>
+        :root {
+            --bg: #05050a;
+            --card: rgba(26, 26, 46, 0.9);
+            --accent: #8e44ad; /* Mov pentru împărțire */
+            --green: #27ae60;
+            --text: #ffffff;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg);
+            background-image: radial-gradient(circle at 10% 20%, #1a1a4e 0%, transparent 25%), radial-gradient(circle at 90% 80%, #4e1a1a 0%, transparent 25%);
+            color: var(--text);
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0;
+        }
+
+        .container {
+            background: var(--card); padding: 2.5rem; border-radius: 24px;
+            width: 90%; max-width: 400px; text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6); border: 1px solid var(--accent);
+        }
+
+        .q-text { font-size: 2.5rem; font-weight: bold; margin: 20px 0; color: var(--accent); }
+        input {
+            width: 80%; padding: 15px; font-size: 1.8rem; border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);
+            color: white; text-align: center; margin-bottom: 20px;
+        }
+
+        button {
+            width: 100%; padding: 15px; border: none; border-radius: 12px;
+            font-weight: bold; cursor: pointer; transition: 0.3s;
+            background: var(--accent); color: white; font-size: 1.1rem;
+        }
+
+        button:hover { transform: scale(1.05); filter: brightness(1.2); }
+        .hidden { display: none; }
+        #message { height: 25px; margin-top: 10px; font-weight: bold; }
+        .user-tag { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 20px; font-size: 0.9rem; opacity: 0.8; }
+        .user-tag img { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--accent); }
+    </style>
+</head>
+<body>
+
+<div class="container" id="screen-game">
+    <div class="user-tag">
+        <img id="mini-photo" src="">
+        <span id="mini-name"></span>
+    </div>
+    <div id="progress">Exercițiul 1 din 10</div>
+    <div class="q-text" id="question">? : ? = ?</div>
+    <input type="number" id="input-ans" placeholder="Răspuns" autofocus>
+    <button onclick="verifica()">VERIFICĂ</button>
+    <p id="message"></p>
+</div>
+
+<div class="container hidden" id="screen-final">
+    <h1 style="color: var(--green)">Test Finalizat!</h1>
+    <div id="result-info">Se trimite nota la server...</div>
+    <button onclick="location.href='/'" style="background: #555; margin-top: 20px;">ÎNAPOI LA MENIU</button>
+</div>
+
+<script>
+    let corecte = 0, total = 10, index = 1, rezultatCorect;
+    const auth = JSON.parse(localStorage.getItem('mate_auth'));
+
+    // Verificăm dacă utilizatorul este logat, altfel îl trimitem la index
+    if (!auth) {
+        window.location.href = "/";
+    } else {
+        document.getElementById('mini-name').innerText = auth.nume;
+        document.getElementById('mini-photo').src = auth.foto;
+    }
+
+    function genereaza() {
+        // Generăm o împărțire care să aibă mereu rezultat întreg
+        let impartitor = Math.floor(Math.random() * 8) + 2; // de la 2 la 9
+        rezultatCorect = Math.floor(Math.random() * 9) + 1; // de la 1 la 9
+        let deimpartit = impartitor * rezultatCorect;
+
+        document.getElementById('question').innerText = `${deimpartit} : ${impartitor} = ?`;
+        document.getElementById('input-ans').value = "";
+        document.getElementById('input-ans').focus();
+        document.getElementById('progress').innerText = `Exercițiul ${index} din ${total}`;
+        document.getElementById('message').innerText = "";
+    }
+
+    function verifica() {
+        const input = document.getElementById('input-ans');
+        let raspuns = parseInt(input.value);
+
+        if (raspuns === rezultatCorect) {
+            corecte++;
+            document.getElementById('message').innerText = "✅ CORECT!";
+            document.getElementById('message').style.color = var(--green);
+        } else {
+            document.getElementById('message').innerText = `❌ GREȘIT! (Corect: ${rezultatCorect})`;
+            document.getElementById('message').style.color = "#e94560";
+        }
+
+        if (index < total) {
+            index++;
+            setTimeout(genereaza, 1200);
+        } else {
+            finaliza();
+        }
+    }
+
+    function finaliza() {
+        let notaFinala = ((corecte / total) * 10).toFixed(2);
+
+        // Trimitere către Flask (Python)
+        fetch('/save_score', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                nume: auth.nume,
+                email: auth.email,
+                foto: auth.foto,
+                rol: auth.rol,
+                nota: notaFinala,
+                materie: "Împărțire"
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-final').classList.remove('hidden');
+            document.getElementById('result-info').innerHTML = `
+                <div style="margin: 20px 0;">
+                    <img src="${auth.foto}" style="width:80px; border-radius:50%; border:3px solid var(--accent);">
+                </div>
+                <h3>${auth.nume}</h3>
+                <p>Nota ta a fost salvată în catalog:</p>
+                <h2 style="font-size: 3rem; color: var(--green); margin: 10px 0;">${notaFinala}</h2>
+            `;
+        })
+        .catch(err => {
+            alert("Eroare la salvarea notei! Verifică dacă serverul Python rulează.");
+        });
+    }
+
+    // Permite apăsarea tastei Enter pentru verificare
+    document.getElementById('input-ans').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') verifica();
+    });
+
+    window.onload = genereaza;
+</script>
+
+</body>
+</html>
